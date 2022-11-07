@@ -1,0 +1,25 @@
+
+FROM mastodon-sep2022:latest
+SHELL ["/bin/bash", "-c"]
+
+USER root
+  #  RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+# need psql
+
+USER mastodon
+
+#ENV PATH="${PATH}:/opt/ruby/bin:/opt/node/bin"
+#COPY Gemfile* package.json yarn.lock /opt/mastodon/
+
+# kill trees which may need pruning (deletion) ; beware all require '*' type stuff
+RUN cd /opt/mastodon && rm -rf config/initializers/* && \
+  rm -rf app/javascript/*
+
+COPY  --chown=mastodon:mastodon .  /opt/mastodon/
+# rely on docker ignorefile + gitignore
+
+RUN cd /opt/mastodon && ls -al && \
+  bundle config unset deployment && \
+  bundle config set silence_root_warning true && \
+	bundle install -j"$(nproc)" && \
+	yarn install --pure-lockfile && yarn cache clean
